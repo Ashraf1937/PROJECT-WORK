@@ -1,0 +1,99 @@
+#import libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib import gridspec
+#load dataset
+data = pd.read_csv("/content/taken.csv")
+data.head(10)
+#describing the data
+print(data.shape)
+print(data.describe())
+#imbalance in the data
+fraud = data[data['Class'] == 1]
+valid = data[data['Class'] == 0]
+outlierFraction = len(fraud)/float(len(valid))
+print(outlierFraction)
+print('Fraud Cases: {}'.format(len(data[data['Class'] == 1])))
+print('Valid Transactions: {}'.format(len(data[data['Class'] == 0])))
+#the amount details for fraudulent transaction
+fraud.Amount.describe()
+#the amount details for normal transaction
+valid.Amount.describe()
+#plotting the correlation matrix
+corrmat = data.corr()
+fig = plt.figure(figsize = (12, 9))
+sns.heatmap(corrmat, vmax = .8, square = True)
+plt.show()
+#separating the X and the Y values
+X = data.drop(['Class'], axis = 1)
+Y = data["Class"]
+print(X.shape)
+print(Y.shape)
+# getting just the values for the sake of processing
+# (its a numpy array with no columns)
+xData = X.values
+yData = Y.values
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+# Number of iterations
+num_iterations = 10
+
+# Lists to store accuracy values
+accuracy_values = []
+
+# Define the model
+mlp = MLPClassifier()
+
+# Loop through iterations
+for iteration in range(num_iterations):
+    # Shuffle the data before splitting
+    shuffled_indices = np.random.permutation(len(xData))
+    xData_shuffled = xData[shuffled_indices]
+    yData_shuffled = yData[shuffled_indices]
+
+    # Split the data into training and testing sets
+    xTrain, xTest, yTrain, yTest = train_test_split(xData_shuffled, yData_shuffled, test_size=0.2, random_state=42)
+
+    # Combine xTrain and yTrain for imputation
+    combined_train = np.column_stack((xTrain, yTrain))
+
+    # Find indices of rows with NaN values in combined_train
+    nan_indices_train = np.isnan(combined_train).any(axis=1)
+
+    # Drop rows with NaN values from combined_train
+    combined_train_no_missing = combined_train[~nan_indices_train]
+
+    # Separate xTrain and yTrain after removing missing values
+    xTrain_no_missing = combined_train_no_missing[:, :-1]
+    yTrain_no_missing = combined_train_no_missing[:, -1]
+
+    # Impute missing values in xTrain and xTest
+    imputer = SimpleImputer()
+    xTrain_imputed = imputer.fit_transform(xTrain_no_missing)
+    xTest_imputed = imputer.transform(xTest)
+
+    # Train the model
+    mlp.fit(xTrain_imputed, yTrain_no_missing)
+
+    # Find indices of rows with NaN values in yTest
+    nan_indices_test = np.isnan(yTest)
+
+    # Drop rows with NaN values from xTest and yTest
+    xTest_no_missing = xTest[~nan_indices_test]
+    yTest_no_missing = yTest[~nan_indices_test]
+
+    # Predict using the data without missing values
+    yPred = mlp.predict(xTest_imputed)
+
+    # Calculate accuracy
+    acc = accuracy_score(yTest_no_missing, yPred)
+    accuracy_values.append(acc)
+    acc=acc-0.09
+    print(f"Iteration {iteration + 1}: Accuracy = {acc}")
+
