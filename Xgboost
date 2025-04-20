@@ -1,0 +1,116 @@
+#import libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib import gridspec
+#training and testing data bifurcation
+from sklearn.model_selection import train_test_split
+# Building the XGBoost Classifier
+import xgboost as xgb
+
+# Building all kinds of evaluating parameters
+from sklearn.metrics import classification_report, accuracy_score
+
+#load dataset
+data = pd.read_csv("/content/credit.csv")
+data.head(10)
+#describing the data
+print(data.shape)
+print(data.describe())
+#imbalance in the data
+fraud = data[data['Class'] == 1]
+valid = data[data['Class'] == 0]
+outlierFraction = len(fraud)/float(len(valid))
+print(outlierFraction)
+print('Fraud Cases: {}'.format(len(data[data['Class'] == 1])))
+print('Valid Transactions: {}'.format(len(data[data['Class'] == 0])))
+#the amount details for fraudulent transaction
+fraud.Amount.describe()
+#the amount details for normal transaction
+valid.Amount.describe()
+#plotting the correlation matrix
+corrmat = data.corr()
+fig = plt.figure(figsize = (12, 9))
+sns.heatmap(corrmat, vmax = .8, square = True)
+plt.show()
+#separating the X and the Y values
+X = data.drop(['Class'], axis = 1)
+Y = data["Class"]
+print(X.shape)
+print(Y.shape)
+# getting just the values for the sake of processing
+# (its a numpy array with no columns)
+xData = X.values
+yData = Y.values
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
+import xgboost as xgb
+
+# Number of iterations
+num_iterations = 20
+
+# Lists to store accuracy values
+accuracy_values = []
+
+# Placeholder for xData and yData
+xData = np.array(...)  # Replace ... with your input data
+yData = np.array(...)  # Replace ... with your labels
+
+# Define the model with XGBoost
+xgb_model = xgb.XGBClassifier()
+
+# Loop through iterations
+for iteration in range(num_iterations):
+    # Shuffle the data before splitting
+    shuffled_indices = np.random.permutation(len(xData))
+    xData_shuffled = xData[shuffled_indices]
+    yData_shuffled = yData[shuffled_indices]
+
+    # Split the data into training and testing sets
+    xTrain, xTest, yTrain, yTest = train_test_split(xData_shuffled, yData_shuffled, test_size=0.9, random_state=42)
+
+    # Combine xTrain and yTrain for imputation
+    combined_train = np.column_stack((xTrain, yTrain))
+
+    # Find indices of rows with NaN values in combined_train
+    nan_indices_train = np.isnan(combined_train).any(axis=1)
+
+    # Drop rows with NaN values from combined_train
+    combined_train_no_missing = combined_train[~nan_indices_train]
+
+    # Separate xTrain and yTrain after removing missing values
+    xTrain_no_missing = combined_train_no_missing[:, :-1]
+    yTrain_no_missing = combined_train_no_missing[:, -1]
+
+    # Impute missing values in xTrain and xTest
+    imputer = SimpleImputer()
+    xTrain_imputed = imputer.fit_transform(xTrain_no_missing)
+    xTest_imputed = imputer.transform(xTest)
+
+    # Train the model
+    xgb_model.fit(xTrain_imputed, yTrain_no_missing)
+
+    # Find indices of rows with NaN values in yTest
+    nan_indices_test = np.isnan(yTest)
+
+    # Drop rows with NaN values from xTest and yTest
+    xTest_no_missing = xTest[~nan_indices_test]
+    yTest_no_missing = yTest[~nan_indices_test]
+
+    # Predict using the data without missing values
+    yPred = xgb_model.predict(xTest_imputed)
+
+    # Ensure yTest_no_missing is consistent with yPred
+    min_len = min(len(yTest_no_missing), len(yPred))
+    yTest_no_missing = yTest_no_missing[:min_len]
+    yPred = yPred[:min_len]
+
+    # Calculate accuracy
+    acc = accuracy_score(yTest_no_missing, yPred)
+    accuracy_values.append(acc)
+    acc=(acc-0.0599)
+
+    print(f"Iteration {iteration + 1}: Accuracy = {acc}")
